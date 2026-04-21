@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Swim training dashboard</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, -apple-system, sans-serif; background: #f8f8f7; color: #1a1a18; padding: 1.5rem; }
+h1 { font-size: 20px; font-weight: 500; margin-bottom: 1.5rem; color: #1a1a18; }
+.grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.section { margin-bottom: 2rem; }
+.metric { background: #f1efe8; border-radius: 8px; padding: 1rem; }
+.metric-label { font-size: 12px; color: #73726c; margin-bottom: 4px; }
+.metric-value { font-size: 22px; font-weight: 500; color: #1a1a18; }
+.metric-sub { font-size: 12px; color: #73726c; margin-top: 2px; }
+.card { background: #fff; border: 0.5px solid rgba(0,0,0,0.15); border-radius: 12px; padding: 1.25rem; }
+.card-title { font-size: 11px; font-weight: 500; color: #73726c; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.race-bar { margin-bottom: 14px; }
+.race-name { font-size: 13px; font-weight: 500; color: #1a1a18; margin-bottom: 4px; display: flex; justify-content: space-between; }
+.race-date { font-size: 12px; color: #73726c; margin-bottom: 6px; }
+.progress-track { height: 6px; background: #f1efe8; border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 3px; }
+.form-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 10px; }
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group label { font-size: 12px; color: #73726c; }
+.form-group input, .form-group select { font-size: 13px; padding: 6px 10px; background: #f1efe8; border: 0.5px solid rgba(0,0,0,0.25); border-radius: 8px; color: #1a1a18; }
+.btn { font-size: 13px; padding: 7px 14px; background: transparent; border: 0.5px solid rgba(0,0,0,0.25); border-radius: 8px; color: #1a1a18; cursor: pointer; }
+.btn:hover { background: #f1efe8; }
+.btn-primary { background: #185FA5; border-color: #185FA5; color: #E6F1FB; }
+.btn-primary:hover { background: #0C447C; }
+.log-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+.log-table th { text-align: left; font-size: 11px; font-weight: 500; color: #73726c; padding: 6px 6px; border-bottom: 0.5px solid rgba(0,0,0,0.12); text-transform: uppercase; letter-spacing: 0.04em; }
+.log-table td { padding: 7px 6px; border-bottom: 0.5px solid rgba(0,0,0,0.08); color: #1a1a18; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.log-table tr:last-child td { border-bottom: none; }
+.badge { display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 10px; font-weight: 500; }
+.badge-pool { background: #E1F5EE; color: #0F6E56; }
+.badge-ow { background: #E6F1FB; color: #185FA5; }
+.temp-pill { display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 10px; font-weight: 500; }
+.tab-row { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 1rem; }
+.tab { font-size: 13px; padding: 6px 14px; border-radius: 8px; border: 0.5px solid rgba(0,0,0,0.2); background: transparent; color: #73726c; cursor: pointer; }
+.tab.active { background: #fff; color: #1a1a18; font-weight: 500; border-color: rgba(0,0,0,0.35); }
+.filter-btn { font-size: 12px; padding: 4px 12px; border-radius: 10px; border: 0.5px solid rgba(0,0,0,0.2); background: transparent; color: #73726c; cursor: pointer; }
+.filter-btn.active { background: #185FA5; border-color: #185FA5; color: #E6F1FB; }
+.session-card { background: #f1efe8; border-radius: 8px; padding: 1rem; margin-bottom: 10px; }
+.session-card.highlight { border-left: 3px solid #1D9E75; border-radius: 0 8px 8px 0; }
+.session-title { font-size: 14px; font-weight: 500; color: #1a1a18; margin-bottom: 4px; }
+.session-detail { font-size: 13px; color: #5f5e5a; line-height: 1.6; }
+.week-label { font-size: 11px; font-weight: 500; color: #73726c; margin: 1rem 0 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+.phase-now { font-size: 11px; font-weight: 500; background: #E1F5EE; color: #0F6E56; padding: 2px 8px; border-radius: 10px; margin-left: 8px; vertical-align: middle; }
+.empty-state { text-align: center; padding: 2rem; color: #73726c; font-size: 14px; }
+.section-heading { font-size: 16px; font-weight: 500; color: #1a1a18; margin-bottom: 4px; }
+.section-sub { font-size: 13px; color: #73726c; margin-bottom: 1rem; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: #73726c; margin-bottom: 8px; }
+.legend span { display: flex; align-items: center; gap: 4px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.temp-ref { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; margin-top: 1rem; }
+.temp-ref-item { background: #f1efe8; border-radius: 8px; padding: 8px 10px; }
+.temp-ref-label { font-size: 11px; color: #73726c; }
+.temp-ref-range { font-size: 13px; font-weight: 500; }
+.time-hint { font-size: 11px; color: #73726c; margin-top: 2px; }
+.import-zone { border: 1.5px dashed rgba(0,0,0,0.2); border-radius: 8px; padding: 1rem; text-align: center; cursor: pointer; font-size: 13px; color: #73726c; margin-top: 8px; }
+.import-zone:hover { border-color: #185FA5; background: #f0f6fc; }
+input[type=file] { display: none; }
+@media (prefers-color-scheme: dark) {
+  body { background: #1a1a18; color: #f1efe8; }
+  h1 { color: #f1efe8; }
+  .metric, .session-card, .temp-ref-item, .progress-track { background: #2c2c2a; }
+  .metric-label, .metric-sub, .race-date, .section-sub, .week-label, .empty-state, .legend, .card-title, .temp-ref-label, .time-hint { color: #b4b2a9; }
+  .metric-value, .session-title, .section-heading { color: #f1efe8; }
+  .session-detail { color: #b4b2a9; }
+  .card { background: #222220; border-color: rgba(255,255,255,0.12); }
+  .form-group input, .form-group select { background: #2c2c2a; border-color: rgba(255,255,255,0.2); color: #f1efe8; }
+  .tab { color: #b4b2a9; border-color: rgba(255,255,255,0.15); }
+  .tab.active { background: #2c2c2a; color: #f1efe8; border-color: rgba(255,255,255,0.3); }
+  .log-table th { color: #b4b2a9; border-color: rgba(255,255,255,0.1); }
+  .log-table td { border-color: rgba(255,255,255,0.06); color: #f1efe8; }
+  .filter-btn { color: #b4b2a9; border-color: rgba(255,255,255,0.15); }
+  .btn { color: #f1efe8; border-color: rgba(255,255,255,0.2); }
+  .btn:hover { background: #2c2c2a; }
+  .import-zone { border-color: rgba(255,255,255,0.2); color: #b4b2a9; }
+  .import-zone:hover { background: rgba(24,95,165,0.15); }
+}
+</style>
+</head>
+<body>
+
+<h1>Swim training dashboard</h1>
+
+<div class="section">
+  <div class="grid-4">
+    <div class="metric"><div class="metric-label">Total distance</div><div class="metric-value" id="stat-total">0 m</div><div class="metric-sub">since Feb 2026</div></div>
+    <div class="metric"><div class="metric-label">Pool distance</div><div class="metric-value" id="stat-pool">0 m</div><div class="metric-sub"><span id="stat-pool-count">0</span> sessions</div></div>
+    <div class="metric"><div class="metric-label">Open water</div><div class="metric-value" id="stat-ow">0 m</div><div class="metric-sub"><span id="stat-ow-count">0</span> sessions</div></div>
+    <div class="metric"><div class="metric-label">Avg OW temp</div><div class="metric-value" id="stat-avgtemp">--</div><div class="metric-sub">5.2°C → 13.8°C</div></div>
+  </div>
+</div>
+
+<div class="grid-2 section">
+  <div class="card">
+    <div class="card-title">Race countdown</div>
+    <div id="race-bars"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Log a session</div>
+    <div class="form-row">
+      <div class="form-group"><label>Date</label><input type="date" id="inp-date" style="width:138px;"></div>
+      <div class="form-group"><label>Type</label>
+        <select id="inp-type" style="width:110px;" onchange="toggleTempField()">
+          <option value="pool">Pool</option>
+          <option value="ow">Open water</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Distance (m)</label><input type="number" id="inp-dist" step="1" min="0" style="width:90px;" placeholder="1500"></div>
+      <div class="form-group">
+        <label>Time (MM:SS)</label>
+        <input type="text" id="inp-time" style="width:90px;" placeholder="30:00" maxlength="5" oninput="formatTimeInput(this)">
+        <span class="time-hint" id="time-hint"></span>
+      </div>
+      <div class="form-group" id="temp-field" style="display:none;"><label>Water temp (°C)</label><input type="number" id="inp-temp" step="0.5" min="0" max="35" style="width:90px;" placeholder="14"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1;"><label>Notes</label><input type="text" id="inp-notes" style="width:100%;" placeholder="Location, session type..."></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <button class="btn btn-primary" onclick="addSession()">Add session</button>
+      <button class="btn" onclick="exportData()">Export data</button>
+      <button class="btn" onclick="document.getElementById('importFile').click()">Import JSON</button>
+      <input type="file" id="importFile" accept=".json" onchange="importData(this)">
+    </div>
+    <div class="import-zone" onclick="document.getElementById('importFile').click()">Drop or click to import a JSON backup or Garmin export</div>
+    <div id="add-msg" style="font-size:12px;margin-top:8px;"></div>
+  </div>
+</div>
+
+<div class="section">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+    <span class="section-heading">Cumulative distance</span>
+    <div class="legend">
+      <span><span class="legend-dot" style="background:#1D9E75;"></span>Pool</span>
+      <span><span class="legend-dot" style="background:#378ADD;"></span>Open water</span>
+    </div>
+  </div>
+  <div style="position:relative;width:100%;height:220px;">
+    <canvas id="chartDist" role="img" aria-label="Cumulative swim distance in metres over time split by pool and open water">Loading...</canvas>
+  </div>
+</div>
+
+<div class="section">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+    <span class="section-heading">Weekly distance</span>
+    <div class="legend">
+      <span><span class="legend-dot" style="background:#1D9E75;"></span>Pool</span>
+      <span><span class="legend-dot" style="background:#378ADD;"></span>Open water</span>
+    </div>
+  </div>
+  <div style="position:relative;width:100%;height:220px;">
+    <canvas id="chartWeekly" role="img" aria-label="Weekly swim distance in metres stacked by pool and open water">Loading...</canvas>
+  </div>
+</div>
+
+<div class="section">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+    <span class="section-heading">Pool pace over time</span>
+    <div class="legend">
+      <span><span class="legend-dot" style="background:#7F77DD;"></span>Pace /100m (lower = faster)</span>
+    </div>
+  </div>
+  <div style="position:relative;width:100%;height:200px;">
+    <canvas id="chartPace" role="img" aria-label="Pool pace per 100m over time showing improvement">Loading...</canvas>
+  </div>
+</div>
+
+<div class="section">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+    <span class="section-heading">Open water temperature</span>
+    <div class="legend">
+      <span><span class="legend-dot" style="background:#D85A30;"></span>Water temp (°C)</span>
+    </div>
+  </div>
+  <div style="position:relative;width:100%;height:200px;">
+    <canvas id="chartTemp" role="img" aria-label="Open water temperature from 5.2C in February to 13.8C in April">Loading...</canvas>
+  </div>
+  <div class="temp-ref">
+    <div class="temp-ref-item"><div class="temp-ref-label">Cold</div><div class="temp-ref-range" style="color:#185FA5;">below 15°C</div></div>
+    <div class="temp-ref-item"><div class="temp-ref-label">Brisk</div><div class="temp-ref-range" style="color:#1D9E75;">15–18°C</div></div>
+    <div class="temp-ref-item"><div class="temp-ref-label">Comfortable</div><div class="temp-ref-range" style="color:#BA7517;">18–22°C</div></div>
+    <div class="temp-ref-item"><div class="temp-ref-label">Warm</div><div class="temp-ref-range" style="color:#D85A30;">above 22°C</div></div>
+  </div>
+</div>
+
+<div class="section card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+    <div class="card-title" style="margin-bottom:0;">Session log</div>
+    <div style="display:flex;gap:6px;">
+      <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn" onclick="setFilter('pool',this)">Pool</button>
+      <button class="filter-btn" onclick="setFilter('ow',this)">Open water</button>
+    </div>
+  </div>
+  <div id="log-wrap"><div class="empty-state">Loading...</div></div>
+</div>
+
+<div class="section">
+  <div class="section-heading">Training plan <span style="font-size:13px;font-weight:400;color:#73726c;">— no wetsuit, updated 20 Apr</span></div>
+  <div class="section-sub">All open water sessions are skin swimming. Pace targets adjusted for no-wetsuit racing.</div>
+  <div class="tab-row">
+    <button class="tab active" onclick="showPhase('all',this)">All phases</button>
+    <button class="tab" onclick="showPhase('now',this)">Now (Apr–May) ✦</button>
+    <button class="tab" onclick="showPhase('build',this)">Build (May–Jun)</button>
+    <button class="tab" onclick="showPhase('race1',this)">Race 1 prep</button>
+    <button class="tab" onclick="showPhase('inter',this)">Inter-race</button>
+    <button class="tab" onclick="showPhase('race23',this)">Race 2 &amp; 3 prep</button>
+  </div>
+  <div id="plan-content"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const STORAGE_KEY = 'swim_sessions_v2';
+
+const GARMIN_DATA = [{"date":"2026-02-07","type":"ow","dist":100,"timeSecs":null,"notes":"West Reservoir","source":"garmin"},{"date":"2026-02-08","type":"ow","dist":100,"timeSecs":null,"notes":"West Res","source":"garmin"},{"date":"2026-02-09","type":"pool","dist":1000,"timeSecs":null,"notes":"Archway pool","source":"garmin"},{"date":"2026-02-10","type":"pool","dist":600,"timeSecs":900,"notes":"Pool swim","source":"garmin"},{"date":"2026-02-11","type":"pool","dist":1200,"timeSecs":null,"notes":"Swim Coaching","source":"garmin"},{"date":"2026-02-12","type":"pool","dist":1050,"timeSecs":1263,"notes":"","source":"garmin"},{"date":"2026-02-13","type":"pool","dist":1500,"timeSecs":1776,"notes":"","source":"garmin"},{"date":"2026-02-14","type":"ow","dist":97,"timeSecs":219,"notes":"Hackney Open Water Swimming","source":"garmin"},{"date":"2026-02-15","type":"ow","dist":44,"timeSecs":156,"notes":"Leeds Open Water Swimming","source":"garmin"},{"date":"2026-02-16","type":"pool","dist":992,"timeSecs":1229,"notes":"","source":"garmin"},{"date":"2026-02-17","type":"pool","dist":532,"timeSecs":583,"notes":"","source":"garmin"},{"date":"2026-02-18","type":"pool","dist":1120,"timeSecs":1135,"notes":"Swim - Pool Swim 1","source":"garmin"},{"date":"2026-02-19","type":"pool","dist":500,"timeSecs":null,"notes":"Swim Lesson Drills","source":"garmin"},{"date":"2026-02-19","type":"pool","dist":575,"timeSecs":703,"notes":"Post lesson swim","source":"garmin"},{"date":"2026-02-19","type":"pool","dist":450,"timeSecs":462,"notes":"Swimming Lesson: long swim","source":"garmin"},{"date":"2026-02-20","type":"pool","dist":2046,"timeSecs":2565,"notes":"Swim thoughts: how many laps will this take?","source":"garmin"},{"date":"2026-02-20","type":"ow","dist":77,"timeSecs":241,"notes":"5.2 C West Res","source":"garmin","temp":5.2},{"date":"2026-02-21","type":"ow","dist":72,"timeSecs":246,"notes":"5.6 West Res","source":"garmin","temp":5.6},{"date":"2026-02-22","type":"ow","dist":83,"timeSecs":275,"notes":"6.7 West Res","source":"garmin","temp":6.7},{"date":"2026-02-23","type":"ow","dist":77,"timeSecs":268,"notes":"7.1 West Res","source":"garmin","temp":7.1},{"date":"2026-02-24","type":"ow","dist":89,"timeSecs":284,"notes":"7.4 West Res","source":"garmin","temp":7.4},{"date":"2026-02-25","type":"ow","dist":104,"timeSecs":273,"notes":"8.4 West Reservoir (FACE! IN! WATER!)","source":"garmin","temp":8.4},{"date":"2026-02-26","type":"pool","dist":1550,"timeSecs":1859,"notes":"Pool thoughts: getting hot cross buns after this","source":"garmin"},{"date":"2026-02-26","type":"ow","dist":87,"timeSecs":291,"notes":"8.8 West Res","source":"garmin","temp":8.8},{"date":"2026-02-27","type":"pool","dist":1000,"timeSecs":1199,"notes":"","source":"garmin"},{"date":"2026-02-27","type":"ow","dist":200,"timeSecs":407,"notes":"9.4 West Reservoir","source":"garmin","temp":9.4},{"date":"2026-03-03","type":"ow","dist":244,"timeSecs":502,"notes":"9.5 West Reservoir","source":"garmin","temp":9.5},{"date":"2026-03-04","type":"pool","dist":1000,"timeSecs":1241,"notes":"","source":"garmin"},{"date":"2026-03-05","type":"pool","dist":400,"timeSecs":829,"notes":"","source":"garmin"},{"date":"2026-03-06","type":"pool","dist":1000,"timeSecs":1201,"notes":"","source":"garmin"},{"date":"2026-03-07","type":"ow","dist":140,"timeSecs":324,"notes":"9.9 West Reservoir","source":"garmin","temp":9.9},{"date":"2026-03-08","type":"ow","dist":241,"timeSecs":481,"notes":"Hackney Open Water Swimming","source":"garmin"},{"date":"2026-03-09","type":"pool","dist":1000,"timeSecs":1132,"notes":"Interval swim","source":"garmin"},{"date":"2026-03-10","type":"pool","dist":2000,"timeSecs":2377,"notes":"","source":"garmin"},{"date":"2026-03-10","type":"pool","dist":1000,"timeSecs":1199,"notes":"","source":"garmin"},{"date":"2026-03-11","type":"pool","dist":1026,"timeSecs":1203,"notes":"","source":"garmin"},{"date":"2026-03-12","type":"pool","dist":1000,"timeSecs":1171,"notes":"","source":"garmin"},{"date":"2026-03-13","type":"pool","dist":1000,"timeSecs":1091,"notes":"","source":"garmin"},{"date":"2026-03-15","type":"pool","dist":992,"timeSecs":1138,"notes":"","source":"garmin"},{"date":"2026-03-16","type":"pool","dist":1500,"timeSecs":1703,"notes":"","source":"garmin"},{"date":"2026-03-16","type":"pool","dist":1100,"timeSecs":1148,"notes":"","source":"garmin"},{"date":"2026-03-17","type":"pool","dist":3100,"timeSecs":3776,"notes":"","source":"garmin"},{"date":"2026-03-18","type":"pool","dist":1125,"timeSecs":1585,"notes":"","source":"garmin"},{"date":"2026-03-19","type":"pool","dist":567,"timeSecs":722,"notes":"","source":"garmin"},{"date":"2026-03-20","type":"ow","dist":241,"timeSecs":518,"notes":"Hackney Open Water Swimming","source":"garmin"},{"date":"2026-03-21","type":"ow","dist":111,"timeSecs":369,"notes":"Hackney Open Water Swimming","source":"garmin"},{"date":"2026-03-23","type":"pool","dist":1100,"timeSecs":1330,"notes":"","source":"garmin"},{"date":"2026-03-24","type":"pool","dist":1020,"timeSecs":1079,"notes":"","source":"garmin"},{"date":"2026-03-24","type":"pool","dist":720,"timeSecs":892,"notes":"","source":"garmin"},{"date":"2026-03-25","type":"pool","dist":1500,"timeSecs":1717,"notes":"","source":"garmin"},{"date":"2026-03-26","type":"pool","dist":525,"timeSecs":541,"notes":"","source":"garmin"},{"date":"2026-03-27","type":"pool","dist":1000,"timeSecs":1113,"notes":"","source":"garmin"},{"date":"2026-03-29","type":"pool","dist":1000,"timeSecs":1144,"notes":"","source":"garmin"},{"date":"2026-04-02","type":"pool","dist":675,"timeSecs":1033,"notes":"","source":"garmin"},{"date":"2026-04-03","type":"ow","dist":286,"timeSecs":454,"notes":"Hackney Open Water Swimming","source":"garmin"},{"date":"2026-04-06","type":"pool","dist":1302,"timeSecs":1585,"notes":"","source":"garmin"},{"date":"2026-04-08","type":"pool","dist":1000,"timeSecs":1098,"notes":"","source":"garmin"},{"date":"2026-04-08","type":"ow","dist":322,"timeSecs":473,"notes":"Hackney Open Water Swimming","source":"garmin"},{"date":"2026-04-09","type":"pool","dist":2100,"timeSecs":2568,"notes":"","source":"garmin"},{"date":"2026-04-10","type":"ow","dist":375,"timeSecs":565,"notes":"13C West Reservoir","source":"garmin","temp":13.0},{"date":"2026-04-12","type":"pool","dist":1080,"timeSecs":1309,"notes":"","source":"garmin"},{"date":"2026-04-12","type":"ow","dist":190,"timeSecs":312,"notes":"City of Westminster Open Water Swimming","source":"garmin"},{"date":"2026-04-13","type":"pool","dist":1008,"timeSecs":1198,"notes":"","source":"garmin"},{"date":"2026-04-13","type":"pool","dist":837,"timeSecs":1050,"notes":"","source":"garmin"},{"date":"2026-04-14","type":"pool","dist":625,"timeSecs":1687,"notes":"","source":"garmin"},{"date":"2026-04-15","type":"pool","dist":405,"timeSecs":546,"notes":"","source":"garmin"},{"date":"2026-04-16","type":"pool","dist":1500,"timeSecs":1891,"notes":"","source":"garmin"},{"date":"2026-04-17","type":"ow","dist":569,"timeSecs":841,"notes":"13.4 West Reservoir","source":"garmin","temp":13.4},{"date":"2026-04-18","type":"ow","dist":368,"timeSecs":772,"notes":"Camden Open Water Swimming","source":"garmin"},{"date":"2026-04-18","type":"ow","dist":769,"timeSecs":1138,"notes":"Bastard Triathlon Day - Open Water Swimming","source":"garmin"},{"date":"2026-04-19","type":"ow","dist":711,"timeSecs":1133,"notes":"Hackney Open Water Swimming","source":"garmin"},{"date":"2026-04-19","type":"ow","dist":681,"timeSecs":1080,"notes":"Hackney Open Water Swimming","source":"garmin"},{"date":"2026-04-20","type":"pool","dist":2000,"timeSecs":2268,"notes":"","source":"garmin"}];
+
+const races = [
+  {name:'Ullswater',date:new Date('2026-06-27'),dist:1500,color:'#1D9E75'},
+  {name:'Dock2dock',date:new Date('2026-09-12'),dist:1500,color:'#378ADD'},
+  {name:'Swim Serpentine',date:new Date('2026-09-19'),dist:1600,color:'#7F77DD'}
+];
+
+const plan = {
+  now:{label:'Phase 2 (now): build & OW extension — late Apr through May',current:true,sessions:[
+    {title:'Push OW past 1000 m this week — no wetsuit',detail:'Your longest skin OW is 769 m. Aim for 1000–1200 m this week. Without wetsuit buoyancy your legs will fatigue more — start steady and focus on a light, consistent two-beat kick throughout.',highlight:true},
+    {title:'Body position drills every pool session',detail:'Without a wetsuit, dropped hips kill your pace. Add to every pool session: 4×25 m kick-only on your back, 4×25 m catch-up drill, 4×25 m head-down torpedo push-off. 10 min total, always at the start.'},
+    {title:'First interval set based on your pace',detail:'Your easy pool pace is 01:53–02:02 /100m. Try 8×100 m on 20 s rest targeting 01:45 /100m. This develops the threshold fitness that translates to 02:05–02:10 /100m in cold open water without a wetsuit.'},
+    {title:'4 sessions per week with one rest day',detail:'Mon/Wed: pool quality with drills. Thu: OW distance. Sat: long pool 2000–2500 m or OW if conditions allow. Build in one full rest day to absorb the training.'}
+  ]},
+  build:{label:'Phase 3: race-specific build — May through mid Jun',sessions:[
+    {title:'OW at full race distance by end of May',detail:'Target 1500 m OW without wetsuit by 31 May. Focus on even pacing — aim for your second 750 m to be no slower than your first.'},
+    {title:'Core and kick strength',detail:'Without wetsuit buoyancy, a strong kick is essential. Add 2×10 min dryland core work per week: planks, flutter kicks, hip rotations. Include 200 m kick-only per pool session.'},
+    {title:'Threshold intervals',detail:'3×400 m at 01:45–01:48 /100m with 45 s rest. Or 10×100 m at 01:43 /100m on 15 s rest. Your OW race pace without a wetsuit will be ~02:05–02:15 /100m.'},
+    {title:'Sighting and negative splits in every OW session',detail:'Sight every 8–10 strokes. Swim the second half of every OW session faster than the first. This is the single most valuable OW race skill to build now.'}
+  ]},
+  race1:{label:'Phase 4: Ullswater taper — 2 weeks before 27 Jun',sessions:[
+    {title:'Week 2 out: cut volume by 30–40%',detail:'Reduce total metres but keep one quality session. One final 1500 m OW session — practice entry, first 200 m pace, and sighting. Last hard week.'},
+    {title:'Race week: 2 short sessions only',detail:'1× 800 m easy pool with 4×50 m at race pace (target 02:00–02:05 /100m OW equivalent). 1× 20–30 min easy swim. Rest the day before completely.'},
+    {title:'Ullswater finish time target: 32–38 minutes',detail:'Ullswater will likely be 15–17°C — warmer than you have been training in. Without a wetsuit, target 02:08–02:32 /100m race pace. Go through 750 m feeling controlled.'},
+    {title:'Pre-race cold exposure',detail:'Keep short cold OW sessions or cold showers in the week before the race to maintain cold adaptation.'}
+  ]},
+  inter:{label:'Inter-race block — Jul through late Aug',sessions:[
+    {title:'1 week easy after Ullswater',detail:'Short easy swims only. Reflect on where you lost pace, how the cold felt, how body position held in the second half.'},
+    {title:'Extend OW to 2000 m+ without wetsuit',detail:'July and August will bring the warmest water of the year (likely 18–22°C). Push OW sessions to 2000 m+ — the extra distance buffer builds significant confidence.'},
+    {title:'Maintain pool quality with 4× per week',detail:'2× pool intervals, 1× long OW, 1× easy. The inter-race block is where you can make the biggest pace gains.'},
+    {title:'Practice race starts',detail:'Hard effort, close proximity, waves from other swimmers. Without a wetsuit you feel the turbulence more. Practice holding stroke together at hard effort for 200–300 m before settling.'}
+  ]},
+  race23:{label:'Phase 5: Dock2dock & Serpentine — Sep',sessions:[
+    {title:'Taper for Dock2dock (12 Sep)',detail:'Same structure as Ullswater taper. By now you will have one race under your belt and 5+ months of no-wetsuit OW training. Target sub-35 minutes if Ullswater went to plan.'},
+    {title:'The 7-day double: race smart at Dock2dock',detail:'With Serpentine just 7 days later, race Dock2dock at 90–95% effort. Day 2 after: easy 20 min pool flush. Day 5: short shakeout 400 m. Day 7: race.'},
+    {title:'Serpentine: calmer water, known fitness',detail:'The Serpentine is sheltered and typically calm — good conditions for a no-wetsuit swimmer. At 1600 m it is only 100 m longer than your other races. Back yourself.'}
+  ]}
+};
+
+let sessions = [];
+let logFilter = 'all';
+let chartDist=null, chartWeekly=null, chartPace=null, chartTemp=null;
+
+function fmtDist(m) { return m>=1000?(m/1000).toFixed(m%1000===0?0:1)+' km':m+' m'; }
+function secondsToMMSS(s) { if(!s) return '—'; return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+function formatPace(d,s) {
+  if(!d||!s) return '—';
+  const p=(s/d)*100;
+  return String(Math.floor(p/60)).padStart(2,'0')+':'+String(Math.round(p%60)).padStart(2,'0')+' /100m';
+}
+function tempColor(t) {
+  if(t<15) return {bg:'#E6F1FB',text:'#0C447C'};
+  if(t<18) return {bg:'#E1F5EE',text:'#0F6E56'};
+  if(t<22) return {bg:'#FAEEDA',text:'#633806'};
+  return {bg:'#FAECE7',text:'#712B13'};
+}
+function toggleTempField() { document.getElementById('temp-field').style.display=document.getElementById('inp-type').value==='ow'?'':'none'; }
+function formatTimeInput(el) {
+  let v=el.value.replace(/[^0-9]/g,'');
+  if(v.length>4) v=v.slice(0,4);
+  if(v.length>2) v=v.slice(0,2)+':'+v.slice(2);
+  el.value=v;
+  const s=parseTimeToSeconds(v);
+  document.getElementById('time-hint').textContent=s&&s>0?Math.floor(s/60)+' min total':'';
+}
+function parseTimeToSeconds(str) {
+  if(!str||!str.includes(':')) return null;
+  const [mm,ss]=str.split(':').map(Number);
+  if(isNaN(mm)||isNaN(ss)||ss>=60) return null;
+  return mm*60+ss;
+}
+
+function mergeWithGarmin(stored) {
+  const existing=new Set(stored.map(s=>`${s.date}|${s.type}|${s.dist}`));
+  const toAdd=GARMIN_DATA.filter(s=>!existing.has(`${s.date}|${s.type}|${s.dist}`));
+  return [...stored,...toAdd].sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+function loadSessions() {
+  let stored=[];
+  try { const raw=localStorage.getItem(STORAGE_KEY); if(raw) stored=JSON.parse(raw); } catch(e){}
+  sessions=mergeWithGarmin(stored);
+  saveSessions();
+}
+
+function saveSessions() { try { localStorage.setItem(STORAGE_KEY,JSON.stringify(sessions)); } catch(e){} }
+
+function addSession() {
+  const date=document.getElementById('inp-date').value;
+  const type=document.getElementById('inp-type').value;
+  const dist=parseInt(document.getElementById('inp-dist').value,10);
+  const timeStr=document.getElementById('inp-time').value.trim();
+  const timeSecs=parseTimeToSeconds(timeStr);
+  const tempVal=parseFloat(document.getElementById('inp-temp').value);
+  const notes=document.getElementById('inp-notes').value.trim();
+  const msg=document.getElementById('add-msg');
+  if(!date||isNaN(dist)||dist<=0){msg.style.color='#c0392b';msg.textContent='Please enter a date and valid distance.';return;}
+  if(timeStr&&timeSecs===null){msg.style.color='#c0392b';msg.textContent='Time must be MM:SS (e.g. 30:00).';return;}
+  const entry={date,type,dist,timeSecs:timeSecs||null,notes};
+  if(type==='ow'&&!isNaN(tempVal)&&tempVal>0) entry.temp=tempVal;
+  sessions.push(entry);
+  sessions.sort((a,b)=>a.date.localeCompare(b.date));
+  saveSessions(); renderAll();
+  ['inp-dist','inp-time','inp-temp','inp-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('time-hint').textContent='';
+  msg.style.color='#1D9E75'; msg.textContent='Session added!';
+  setTimeout(()=>msg.textContent='',2500);
+}
+
+function exportData() {
+  const blob=new Blob([JSON.stringify(sessions,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='swim_sessions_backup.json'; a.click();
+}
+
+function importData(input) {
+  const file=input.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try {
+      let imported=JSON.parse(e.target.result);
+      if(Array.isArray(imported)&&imported[0]&&imported[0].summarizedActivitiesExport) {
+        imported=imported[0].summarizedActivitiesExport
+          .filter(a=>a.activityType==='lap_swimming'||a.activityType==='open_water_swimming')
+          .map(a=>{
+            const ts=a.startTimeLocal?parseInt(a.startTimeLocal)/1000:parseInt(a.beginTimestamp)/1000;
+            const d=new Date(ts*1000);
+            const date=d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');
+            const type=a.activityType==='lap_swimming'?'pool':'ow';
+            const dist=Math.round(a.distance/100);
+            const timeSecs=a.duration?Math.round(a.duration/1000):null;
+            const validTime=timeSecs&&timeSecs<86400&&dist>0?timeSecs:null;
+            const n=a.name||'';
+            const notes=n!=='Pool Swim'&&n!=='Open Water Swimming'?n:'';
+            return {date,type,dist,timeSecs:validTime,notes,source:'garmin'};
+          }).filter(s=>s.dist>0);
+      }
+      const existing=new Set(sessions.map(s=>`${s.date}|${s.type}|${s.dist}`));
+      const toAdd=imported.filter(s=>!existing.has(`${s.date}|${s.type}|${s.dist}`));
+      sessions=[...sessions,...toAdd].sort((a,b)=>a.date.localeCompare(b.date));
+      saveSessions(); renderAll();
+      const msg=document.getElementById('add-msg');
+      msg.style.color='#1D9E75'; msg.textContent=`Imported ${toAdd.length} new sessions.`;
+      setTimeout(()=>msg.textContent='',3000);
+    } catch(err) { alert('Could not parse file: '+err.message); }
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+
+function setFilter(f,btn) {
+  logFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); renderLog();
+}
+
+function getWeekKey(dateStr) {
+  const d=new Date(dateStr+'T12:00:00Z');
+  const day=d.getUTCDay()||7;
+  d.setUTCDate(d.getUTCDate()+4-day);
+  const yr=new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  const wk=Math.ceil(((d-yr)/86400000+1)/7);
+  return `${d.getUTCFullYear()}-W${String(wk).padStart(2,'0')}`;
+}
+
+function renderStats() {
+  const total=sessions.reduce((s,x)=>s+x.dist,0);
+  const pool=sessions.filter(x=>x.type==='pool');
+  const ow=sessions.filter(x=>x.type==='ow');
+  const temps=sessions.filter(x=>x.type==='ow'&&x.temp!=null).map(x=>x.temp);
+  const avgTemp=temps.length?temps.reduce((a,b)=>a+b,0)/temps.length:null;
+  document.getElementById('stat-total').textContent=fmtDist(total);
+  document.getElementById('stat-pool').textContent=fmtDist(pool.reduce((s,x)=>s+x.dist,0));
+  document.getElementById('stat-pool-count').textContent=pool.length;
+  document.getElementById('stat-ow').textContent=fmtDist(ow.reduce((s,x)=>s+x.dist,0));
+  document.getElementById('stat-ow-count').textContent=ow.length;
+  document.getElementById('stat-avgtemp').textContent=avgTemp!=null?avgTemp.toFixed(1)+'°C':'--';
+}
+
+function renderRaces() {
+  const today=new Date(); today.setHours(0,0,0,0);
+  const start=new Date('2026-02-07');
+  document.getElementById('race-bars').innerHTML=races.map(r=>{
+    const days=Math.max(0,Math.round((r.date-today)/86400000));
+    const pct=Math.min(100,Math.max(0,Math.round(((today-start)/(r.date-start))*100)));
+    return `<div class="race-bar">
+      <div class="race-name">${r.name} <span style="font-weight:400;color:#888780;">${r.dist} m</span></div>
+      <div class="race-date">${r.date.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})} &mdash; <strong>${days}</strong> days to go</div>
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${r.color};"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function renderLog() {
+  const filtered=logFilter==='all'?sessions:sessions.filter(s=>s.type===logFilter);
+  if(!filtered.length){document.getElementById('log-wrap').innerHTML='<div class="empty-state">No sessions.</div>';return;}
+  const rows=[...filtered].reverse().slice(0,40).map(s=>{
+    const tc=s.temp!=null?tempColor(s.temp):null;
+    const tempCell=s.temp!=null?`<span class="temp-pill" style="background:${tc.bg};color:${tc.text};">${s.temp}°C</span>`:'&mdash;';
+    return `<tr>
+      <td style="width:58px;">${new Date(s.date+'T12:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</td>
+      <td style="width:72px;"><span class="badge ${s.type==='pool'?'badge-pool':'badge-ow'}">${s.type==='pool'?'Pool':'OW'}</span></td>
+      <td style="width:60px;">${fmtDist(s.dist)}</td>
+      <td style="width:56px;">${secondsToMMSS(s.timeSecs)}</td>
+      <td style="width:82px;">${formatPace(s.dist,s.timeSecs)}</td>
+      <td style="width:58px;">${tempCell}</td>
+      <td style="color:#888780;">${s.notes||'&mdash;'}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('log-wrap').innerHTML=`
+    <table class="log-table"><thead><tr>
+      <th style="width:58px;">Date</th><th style="width:72px;">Type</th><th style="width:60px;">Dist</th>
+      <th style="width:56px;">Time</th><th style="width:82px;">Pace</th><th style="width:58px;">Temp</th><th>Notes</th>
+    </tr></thead><tbody>${rows}</tbody></table>
+    ${filtered.length>40?`<div style="font-size:12px;color:#888780;margin-top:8px;">${filtered.length-40} older sessions not shown.</div>`:''}`;
+}
+
+function renderDistChart() {
+  const sorted=[...sessions].sort((a,b)=>a.date.localeCompare(b.date));
+  let cp=0,co=0; const labels=[],pd=[],od=[];
+  for(const s of sorted){
+    if(s.type==='pool') cp+=s.dist; else co+=s.dist;
+    labels.push(new Date(s.date+'T12:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'short'}));
+    pd.push(cp); od.push(co);
+  }
+  const ctx=document.getElementById('chartDist').getContext('2d');
+  if(chartDist) chartDist.destroy();
+  chartDist=new Chart(ctx,{type:'line',data:{labels,datasets:[
+    {label:'Pool',data:pd,borderColor:'#1D9E75',backgroundColor:'transparent',pointRadius:0,borderWidth:2},
+    {label:'OW',data:od,borderColor:'#378ADD',backgroundColor:'transparent',pointRadius:0,borderWidth:2,borderDash:[5,3]}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{ticks:{autoSkip:true,maxTicksLimit:8,maxRotation:30}},
+      y:{ticks:{callback:v=>v>=1000?(v/1000).toFixed(1)+'k':v},title:{display:true,text:'Cumulative metres'}}}}});
+}
+
+function renderWeeklyChart() {
+  const wm={};
+  for(const s of sessions){
+    const wk=getWeekKey(s.date);
+    if(!wm[wk]) wm[wk]={pool:0,ow:0};
+    wm[wk][s.type]+=s.dist;
+  }
+  const weeks=Object.keys(wm).sort();
+  const labels=weeks.map(w=>{
+    const [yr,wn]=w.split('-W');
+    const jan4=new Date(Date.UTC(parseInt(yr),0,4));
+    const d=new Date(jan4.getTime()+(parseInt(wn)-1)*7*86400000);
+    return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+  });
+  const ctx=document.getElementById('chartWeekly').getContext('2d');
+  if(chartWeekly) chartWeekly.destroy();
+  chartWeekly=new Chart(ctx,{type:'bar',data:{labels,datasets:[
+    {label:'Pool',data:weeks.map(w=>wm[w].pool),backgroundColor:'#1D9E75'},
+    {label:'OW',data:weeks.map(w=>wm[w].ow),backgroundColor:'#378ADD'}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{stacked:true,ticks:{autoSkip:true,maxTicksLimit:10,maxRotation:30}},
+      y:{stacked:true,ticks:{callback:v=>v>=1000?(v/1000).toFixed(1)+'k':v},title:{display:true,text:'Metres per week'}}}}});
+}
+
+function renderPaceChart() {
+  const valid=sessions.filter(s=>s.type==='pool'&&s.timeSecs&&s.dist>300&&s.timeSecs>300&&s.timeSecs<7200)
+    .map(s=>{const p=(s.timeSecs/s.dist)*100; return p>60&&p<300?{date:s.date,pace:parseFloat(p.toFixed(1))}:null;})
+    .filter(Boolean);
+  if(!valid.length) return;
+  const ctx=document.getElementById('chartPace').getContext('2d');
+  if(chartPace) chartPace.destroy();
+  chartPace=new Chart(ctx,{type:'line',data:{
+    labels:valid.map(p=>new Date(p.date+'T12:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'short'})),
+    datasets:[{label:'Pace',data:valid.map(p=>p.pace),borderColor:'#7F77DD',backgroundColor:'transparent',pointRadius:2,borderWidth:2}]
+  },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{ticks:{autoSkip:true,maxTicksLimit:8,maxRotation:30}},
+      y:{reverse:true,title:{display:true,text:'Seconds per 100m (lower = faster)'},
+        ticks:{callback:v=>{const m=Math.floor(v/60),s=Math.round(v%60);return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');}}}}}});
+}
+
+function renderTempChart() {
+  const ot=sessions.filter(s=>s.type==='ow'&&s.temp!=null).sort((a,b)=>a.date.localeCompare(b.date));
+  if(!ot.length) return;
+  const temps=ot.map(s=>s.temp);
+  const ptColors=temps.map(t=>t<15?'#378ADD':t<18?'#1D9E75':t<22?'#BA7517':'#D85A30');
+  const ctx=document.getElementById('chartTemp').getContext('2d');
+  if(chartTemp) chartTemp.destroy();
+  chartTemp=new Chart(ctx,{type:'line',data:{
+    labels:ot.map(s=>new Date(s.date+'T12:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'short'})),
+    datasets:[{label:'Water temp',data:temps,borderColor:'#D85A30',backgroundColor:'transparent',
+      pointRadius:5,pointBackgroundColor:ptColors,pointBorderColor:ptColors,borderWidth:2,borderDash:[4,2]}]
+  },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{ticks:{autoSkip:true,maxTicksLimit:10,maxRotation:30}},
+      y:{min:4,max:20,title:{display:true,text:'°C'},ticks:{callback:v=>v+'°'}}}}});
+}
+
+function renderPlan(phase) {
+  const phases=phase==='all'?Object.keys(plan):[phase];
+  document.getElementById('plan-content').innerHTML=phases.map(k=>{
+    const p=plan[k];
+    const label=p.current?`${p.label} <span class="phase-now">current</span>`:p.label;
+    return `<div class="week-label">${label}</div>`+p.sessions.map(s=>
+      `<div class="session-card${s.highlight?' highlight':''}"><div class="session-title">${s.title}</div><div class="session-detail">${s.detail}</div></div>`
+    ).join('');
+  }).join('');
+}
+
+function showPhase(phase,btn) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active'); renderPlan(phase);
+}
+
+function renderAll() { renderStats(); renderRaces(); renderLog(); renderDistChart(); renderWeeklyChart(); renderPaceChart(); renderTempChart(); }
+
+document.getElementById('inp-date').value=new Date().toISOString().slice(0,10);
+loadSessions();
+renderAll();
+renderPlan('all');
+</script>
+</body>
+</html>
